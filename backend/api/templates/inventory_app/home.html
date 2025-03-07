@@ -1,0 +1,40 @@
+{% extends 'main.html' %}
+{% block content %}
+  <style>
+  .home-container{
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+  }
+  </style>
+  <h1>Home Template</h1>
+  <div class="home-container">
+    <div>
+      <h3>Browse Items</h3>
+      <hr>
+      <div>
+        <a href="{% url 'home' %}">All Orders</a>
+      </div>
+      {% for order in orders %}
+        <div>
+          <a href="{% url 'home' %}?q={{ order.id }}">{{ order.item }} Order</a>
+        </div>
+      {% endfor %}
+    </div>
+    <div>
+      <a href="{% url 'create-item' %}">Create Item</a>
+      <a href="{% url 'order-item' %}">Order Item</a>
+      <div>
+        {% for item in items %}
+          <div>
+            <a href="{% url 'update-item' item.id %}">Edit Item</a>
+            <a href="{% url 'delete-item' item.id %}">Delete</a>
+            <h5>
+              <a href="{% url 'inventory' item.id %}">{{ item.name }}</a> -- {{ item.quantity }}
+              <hr>
+            </h5>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

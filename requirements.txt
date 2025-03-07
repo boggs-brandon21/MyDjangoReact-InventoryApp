@@ -1,0 +1,12 @@
+# Install required packages for development with Python, Postgresql, Django, (Angular/React?) 
+asgiref
+Django
+django-cors-headers
+djangorestframework
+djangorestframework-simplejwt
+PyJWT
+pytz
+sqlparse
+psycopg2-binary
+python-dotenv
+django-money
