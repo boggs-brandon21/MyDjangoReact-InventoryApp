@@ -1,7 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from djmoney.models.fields import MoneyField
+from djmoney.models.fields import MoneyField  # Investigate implementation, causes errors 
 
 # Create your models here.
 class InventoryItem(models.Model):
@@ -34,7 +35,7 @@ class IncomingOrder(models.Model):
     deliveredOn = models.DateTimeField(null=True, blank=True)
     receivedBy = models.CharField(max_length=30, blank=True)
     notes = models.TextField(max_length=255, null=True, blank=True)
-    invoiceNumber = models.CharField(max_length=50, blank=True, unique=True)
+    invoiceNumber = models.CharField(max_length=50, blank=True, unique=True, null=True)
     
     class Meta:
         ordering = ['-orderedOn']
@@ -80,6 +81,7 @@ class IncomingOrder(models.Model):
         # Helper function to update the related InventoryItem quantity
         self.item.quantity += self.numOrdered
         self.item.save()
+        text = f"An item was added to inventory: {self.item_name}. Quantity: {self.item.quantity}."
     
 class OutgoingOrder(models.Model):
     item = models.ForeignKey(InventoryItem, on_delete=models.PROTECT)
@@ -97,7 +99,77 @@ class OutgoingOrder(models.Model):
         ordering = ['-ordered_on']
     
     def __str__(self):
-        return self.customer_name
+        return f"Customer: {self.customer_name}, Ordered: {self.num_ordered} of {self.item}."
+    
+    
+    
+# TODO implement Customers Model   
+
+
+# Incorporating a Conversation model that holds messages for quick access to message another user
+class Conversation(models.Model):
+    participants = models.ManyToManyField(User, related_name="conversations")
+    created_at = models.DateTimeField(auto_now_add=True)
+    subject = models.CharField(max_length=100, null=True, blank=True)
+    
+    # Additional field for notifications
+    notification_only = models.BooleanField(default=False)
+    
+    def __str__(self):
+        if self.notification_only:
+            return "System Notification - No Reply"
+        else:
+            return f"{self.subject}"
+
+# TODO implement Message Model
+class Message(models.Model):
+    conversation = models.ForeignKey(Conversation, on_delete= models.CASCADE, related_name="messages")
+    sender = models.ForeignKey(User, on_delete= models.CASCADE, related_name="sender")
+    receivers = models.ManyToManyField(User, related_name="received_messages")
+    text = models.TextField(max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    
+    # Order the messages by most recent
+    class Meta:
+        ordering = ['-sent_at']
+        
+    def __str__(self):
+        if not self.conversation.notification_only:
+            return "System Notification Message"
+        else:
+            return f"From: {self.sender.username}"
+        
+        
+# Utility Function to handle the creation of a system message to notify staff of significant events 
+def notify_staff(text: str):
+    User = get_user_model()
+    
+    # Obtain our created system user
+    system_user = User.objects.get(username="System")
+    
+    # Assign staff variable to users where is_staff is True
+    staff = User.objects.filter(is_staff=True)
+    
+    # One instance of a conversation to all staff
+    convo, created = Conversation.objects.get_or_create(
+        subject = "Staff Notifications",
+        notification_only = True
+    )
+    
+    # Ensure participants are up to date
+    convo.participants.set(staff)
+    
+    for staffer in staff:
+        if staffer != system_user:
+            msg = Message.objects.create(
+                conversation=convo,
+                sender=system_user,
+                text=text
+            )
+            msg.receivers.add(staffer)
+    
     
     
     

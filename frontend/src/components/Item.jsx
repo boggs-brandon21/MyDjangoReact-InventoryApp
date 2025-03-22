@@ -1,4 +1,5 @@
 import React from 'react';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
 function Item({ item, onDelete, onNameClick }) {
 	const formattedDate = new Date(item.created).toLocaleDateString('en-US');
@@ -25,7 +26,7 @@ function Item({ item, onDelete, onNameClick }) {
 					className="delete-button"
 					onClick={() => onDelete(item.id)}
 				>
-					Delete
+					<i className="bi bi-x-circle-fill"></i>
 				</button>
 			</td>
 		</tr>

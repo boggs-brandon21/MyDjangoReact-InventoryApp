@@ -11,6 +11,7 @@ function Home() {
 	const [orders, setOrders] = useState([]);
 	const [selectedItem, setSelectedItem] = useState(null); // Track the item that is clicked
 
+	// Synchronize with the API to ensure we have all the items and orders
 	useEffect(() => {
 		getItems();
 		getOrders();
@@ -21,7 +22,7 @@ function Home() {
 		api.get('/api/items/')
 			.then((res) => res.data)
 			.then((data) => {
-				setItems(data);
+				setItems(data);  // Set our items state to update the array
 				console.log(data);
 			})
 			.catch((err) => alert(err));
@@ -29,9 +30,10 @@ function Home() {
 
 	// delete item
 	const deleteItem = (id) => {
-		api.delete(`/api/items/delete/${id}/`)
+		// have to modify due to API change with routing.. there is no /delete endpoint, just add method
+		api.delete(`/api/items/${id}/`)
 			.then((res) => {
-				if (res.status === 204) {
+				if (res.status === 204) {  // Delete action was successful, 204 No Content
 					alert('Item Deleted!');
 					getItems(); // <-- now we refetch after we know the item is deleted
 				} else {
@@ -41,6 +43,7 @@ function Home() {
 			.catch((error) => alert(error));
 	};
 
+	// get the orders from the API
 	const getOrders = () => {
 		api.get('/api/ordersIn/')
 			.then((res) => res.data)
@@ -51,9 +54,10 @@ function Home() {
 			.catch((err) => alert(err));
 	};
 
-	// accessing our backend routes
+	// accessing our backend route to obtain a specific item
 	const getOrdersForItem = (item) => {
-		api.get(`/api/ordersIn/order/${item}`)
+		// need to modify endpoint to use a query param for the item because the /order endpoint doesn't exist
+		api.get(`/api/ordersIn/?item=${item}`)
 			.then((res) => res.data)
 			.then((data) => {
 				setOrders(data);
@@ -62,8 +66,10 @@ function Home() {
 			.catch((err) => alert(err));
 	};
 
+	// delete an order
 	const deleteOrder = (item) => {
-		api.delete(`/api/ordersIn/delete/${item}/`)
+		// same as above, need to remove the /delete endpoint because it doesn't exist
+		api.delete(`/api/ordersIn/${item}/`)
 			.then((res) => {
 				if (res.status === 204) {
 					alert('Order Deleted!');
@@ -77,8 +83,8 @@ function Home() {
 
 	// Call this to handle the item click
 	const handleItemClick = (item) => {
-		setSelectedItem(item);
-		getOrdersForItem(item.id);
+		setSelectedItem(item);  // When an item is selected - state change
+		getOrdersForItem(item.id);  // Obtain the orders for that item's id
 	};
 
 	// Callback to refresh items after a new one is created
@@ -158,7 +164,8 @@ function Home() {
 
 					{/* CREATE ORDER FORM for the selected item */}
 					<CreateOrderInForm
-						itemId={selectedItem.id}
+						id={selectedItem.id}
+						itemName={selectedItem.name}
 						onOrderCreated={handleOrderCreated}
 					/>
 				</div>

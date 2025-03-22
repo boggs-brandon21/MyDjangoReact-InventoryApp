@@ -2,21 +2,14 @@
 	background-color: darkblue;
 }
 
+
 nav {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 	background-color: black;
-    position: sticky;
-    top: 0;
-}
-
-nav .title {
-	font-size: 1.5rem;
-	margin: 1rem;
-	font-weight: bold;
-	text-decoration: none;
-	color: white;
+	position: sticky;
+	top: 0;
 }
 
 nav ul {

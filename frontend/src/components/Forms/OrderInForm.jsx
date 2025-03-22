@@ -1,12 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../api';
 
-function CreateOrderInForm({ id, onOrderCreated }) {
+function CreateOrderInForm({ id, itemName: initialItemName, onOrderCreated }) {
 	const [price, setPrice] = useState('');
 	const [numOrdered, setNumOrdered] = useState('');
 	const [orderedBy, setOrderedBy] = useState('');
-	const [itemName, setItemName] = useState('');
+	const [itemName, setItemName] = useState(initialItemName || '');
 	const [invoiceNum, setInvoiceNum] = useState('');
+
+	// Update the itemName state when initialItemName prop changes
+	useEffect(() => {
+		setItemName(initialItemName || '');
+	}, [initialItemName]);
 
 	const handleSubmit = (e) => {
 		e.preventDefault();

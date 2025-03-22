@@ -1,19 +1,21 @@
 /* eslint-disable no-unused-vars */
 import React from 'react';
+import { useContext } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { ACCESS_TOKEN, REFRESH_TOKEN } from '../constants';
 import { jwtDecode } from 'jwt-decode';
-import Container from 'react-bootstrap/Container';
-import Navbar from 'react-bootstrap/Navbar';
-import Nav from 'react-bootstrap/Nav';
 import '../styles/Navbar.css';
 import logo from '../assets/furnacare-logo.jpg';
+import { Container, Navbar, Nav, Stack, Button } from 'react-bootstrap';
+import { ConversationsContext } from './Context/ConversationContext';
 
 function NavbarTop() {
 	// Attempt to read the token from local storage
 	const token = localStorage.getItem(ACCESS_TOKEN);
 	let username = null;
+
+	// IF we obtain the token from localStorage
 	if (token) {
 		try {
 			const decoded = jwtDecode(token);
@@ -24,20 +26,29 @@ function NavbarTop() {
 		}
 	}
 
+	// Access our unreadCount from out ConversationsContext
+	const { unreadCount } = useContext(ConversationsContext);
+
 	// If there is a username from the token, user is logged in, otherwise no user
 	const isLoggedIn = Boolean(username);
+
+	// Instantiate navigate variable to imperatively issue the navigation action
 	const navigate = useNavigate();
 
+	// Arrow function that handles the logout event by removing the jwt token
 	const handleLogout = () => {
 		localStorage.removeItem(ACCESS_TOKEN);
 		localStorage.removeItem(REFRESH_TOKEN);
 
-		// Navigate to login screen
+		// Navigate to login screen => useNavigate('/login')
 		navigate('/login');
 	};
 
 	return (
-		<nav className="navbar navbar-expand-lg bg-dark navbar-dark">
+		<nav
+			className="navbar navbar-expand-lg border-bottom border-body py-0"
+			data-bs-theme="dark"
+		>
 			<div className="container-fluid">
 				<a className="navbar-brand" href="/">
 					<img
@@ -48,7 +59,7 @@ function NavbarTop() {
 				</a>
 
 				<div className="collapse navbar-collapse">
-					<ul className="navbar-nav mx-auto mb-2 mb-lg-0">
+					<ul className="navbar-nav mx-auto mb-2">
 						<li className="nav-item">
 							<a
 								className="nav-link fw-bold"
@@ -59,10 +70,7 @@ function NavbarTop() {
 							</a>
 						</li>
 						<li className="nav-item">
-							<a
-								className="nav-link fw-bold"
-								href="/api/ordersIn"
-							>
+							<a className="nav-link fw-bold" href="/orders-in">
 								Incoming Orders
 							</a>
 						</li>
@@ -72,30 +80,55 @@ function NavbarTop() {
 							</a>
 						</li>
 						<li className="nav-item">
-							<a
-								className="nav-link fw-bold"
-								href="/api/ordersOut"
-							>
+							<a className="nav-link fw-bold" href="/orders-out">
 								Outgoing Orders
 							</a>
 						</li>
 					</ul>
 				</div>
 
-				<div style={{ marginLeft: 'auto', marginRight: '1rem' }}>
+				<div>
 					{isLoggedIn ? (
-						<div>
-							Signed in as <strong>{username}</strong>
-							<button
-								style={{ marginLeft: '1rem' }}
+						<Stack
+							className="mx-auto"
+							direction="horizontal"
+							gap={2}
+						>
+							<Link
+								to="/conversations"
+								className="position-relative d-inline-block px-1"
+								style={{
+									color: 'inherit',
+									textDecoration: 'none',
+								}}
+							>
+								<i className="bi bi-chat-left-text-fill fs-4"></i>
+
+								{unreadCount > 0 && (
+									<span
+										className="position-absolute top-25 start-100 translate-middle badge rounded-pill bg-danger"
+										style={{ fontSize: '0.7rem' }}
+									>
+										{unreadCount}
+									</span>
+								)}
+							</Link>
+
+							<span>
+								Signed in as: <strong>{username}</strong>
+							</span>
+							<Button
+								variant="danger"
+								style={{ marginLeft: '0.5rem' }}
 								onClick={handleLogout}
 							>
 								Logout
-							</button>
-						</div>
+							</Button>
+						</Stack>
 					) : (
 						<NavLink to="/login">Sign In</NavLink>
 					)}
+					<div></div>
 				</div>
 			</div>
 		</nav>
