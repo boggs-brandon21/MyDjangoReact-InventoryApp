@@ -9,85 +9,72 @@ import '../styles/Navbar.css';
 import logo from '../assets/furnacare-logo.jpg';
 import { Container, Navbar, Nav, Stack, Button } from 'react-bootstrap';
 import { ConversationsContext } from './Context/ConversationContext';
+import { AuthContext } from './Context/AuthContext';
 
 function NavbarTop() {
-	// Attempt to read the token from local storage
-	const token = localStorage.getItem(ACCESS_TOKEN);
-	let username = null;
-
-	// IF we obtain the token from localStorage
-	if (token) {
-		try {
-			const decoded = jwtDecode(token);
-			// console.log('Decoded Token', decoded.username);
-			username = decoded.username || decoded.sub;
-		} catch (err) {
-			console.error('Failed to decode token', err);
-		}
-	}
+	// No longer need to access the token, can use the AuthContext with the useContext hook to pull currentUser info
+	const { currentUser, logout } = useContext(AuthContext);
 
 	// Access our unreadCount from out ConversationsContext
 	const { unreadCount } = useContext(ConversationsContext);
 
 	// If there is a username from the token, user is logged in, otherwise no user
-	const isLoggedIn = Boolean(username);
+	const isLoggedIn = Boolean(currentUser);
 
 	// Instantiate navigate variable to imperatively issue the navigation action
 	const navigate = useNavigate();
 
 	// Arrow function that handles the logout event by removing the jwt token
 	const handleLogout = () => {
-		localStorage.removeItem(ACCESS_TOKEN);
-		localStorage.removeItem(REFRESH_TOKEN);
+		logout();
+
+		// Reload the page to ensure full state reset
+		window.location.reload();
 
 		// Navigate to login screen => useNavigate('/login')
 		navigate('/login');
 	};
 
 	return (
-		<nav
-			className="navbar navbar-expand-lg border-bottom border-body py-0"
+		<Navbar
+			className="mb-4"
 			data-bs-theme="dark"
+			style={{ height: '4.50rem' }}
 		>
-			<div className="container-fluid">
-				<a className="navbar-brand" href="/">
+			<Container className="container-fluid">
+				<Navbar.Brand className="" href="/">
 					<img
 						src={logo}
 						className="object-fit-contain border rounded"
 						alt="Furnacare Logo"
 					/>
-				</a>
+				</Navbar.Brand>
 
-				<div className="collapse navbar-collapse">
-					<ul className="navbar-nav mx-auto mb-2">
-						<li className="nav-item">
-							<a
-								className="nav-link fw-bold"
-								aria-current="page"
-								href="/"
-							>
-								Furnacare Inventory
-							</a>
-						</li>
-						<li className="nav-item">
-							<a className="nav-link fw-bold" href="/orders-in">
-								Incoming Orders
-							</a>
-						</li>
-						<li className="nav-item">
-							<a className="nav-link fw-bold" href="/create-item">
-								Create Item
-							</a>
-						</li>
-						<li className="nav-item">
-							<a className="nav-link fw-bold" href="/orders-out">
+				<Nav className="">
+					<Stack direction="horizontal" gap={3}>
+						<Link
+							className="link-light text-decoration-none fw-bold"
+							to="/"
+							aria-current="page"
+						>
+							Furnacare Inventory
+						</Link>
+						<Link
+							className="link-light text-decoration-none fw-bold"
+							to="/orders-in"
+						>
+							Incoming Orders
+						</Link>
+						<Link className="link-light text-decoration-none fw-bold" to="/create-item">
+							Create Item
+						</Link>
+						<Link className="link-light text-decoration-none fw-bold" to="/orders-out">
 								Outgoing Orders
-							</a>
-						</li>
-					</ul>
-				</div>
+						</Link>
+					</Stack>
+				</Nav>
 
-				<div>
+				<Nav>
 					{isLoggedIn ? (
 						<Stack
 							className="mx-auto"
@@ -115,7 +102,8 @@ function NavbarTop() {
 							</Link>
 
 							<span>
-								Signed in as: <strong>{username}</strong>
+								Signed in as:{' '}
+								<strong>{currentUser.username}</strong>
 							</span>
 							<Button
 								variant="danger"
@@ -128,10 +116,9 @@ function NavbarTop() {
 					) : (
 						<NavLink to="/login">Sign In</NavLink>
 					)}
-					<div></div>
-				</div>
-			</div>
-		</nav>
+				</Nav>
+			</Container>
+		</Navbar>
 	);
 }
 

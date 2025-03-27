@@ -1,15 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import api from '../api';
 import Item from '../components/Item';
 import OrderIn from '../components/OrdersIn';
 import CreateItemForm from '../components/Forms/ItemForm';
 import CreateOrderInForm from '../components/Forms/OrderInForm';
+// incorporate our ConversationsContext here to manage notifications for an order being created
+import { ConversationsContext } from '../components/Context/ConversationContext';
+
 // import '../styles/Table.css';
 
 function Home() {
 	const [items, setItems] = useState([]);
 	const [orders, setOrders] = useState([]);
 	const [selectedItem, setSelectedItem] = useState(null); // Track the item that is clicked
+
+	// used to fetchConversations to trigger an unread notification in the navbar when an order is created
+	const { fetchConversations } = useContext(ConversationsContext);
 
 	// Synchronize with the API to ensure we have all the items and orders
 	useEffect(() => {
@@ -22,7 +28,7 @@ function Home() {
 		api.get('/api/items/')
 			.then((res) => res.data)
 			.then((data) => {
-				setItems(data);  // Set our items state to update the array
+				setItems(data); // Set our items state to update the array
 				console.log(data);
 			})
 			.catch((err) => alert(err));
@@ -33,7 +39,8 @@ function Home() {
 		// have to modify due to API change with routing.. there is no /delete endpoint, just add method
 		api.delete(`/api/items/${id}/`)
 			.then((res) => {
-				if (res.status === 204) {  // Delete action was successful, 204 No Content
+				if (res.status === 204) {
+					// Delete action was successful, 204 No Content
 					alert('Item Deleted!');
 					getItems(); // <-- now we refetch after we know the item is deleted
 				} else {
@@ -83,17 +90,13 @@ function Home() {
 
 	// Call this to handle the item click
 	const handleItemClick = (item) => {
-		setSelectedItem(item);  // When an item is selected - state change
-		getOrdersForItem(item.id);  // Obtain the orders for that item's id
-	};
-
-	// Callback to refresh items after a new one is created
-	const handleItemCreated = () => {
-		getItems();
+		setSelectedItem(item); // When an item is selected - state change
+		getOrdersForItem(item.id); // Obtain the orders for that item's id
 	};
 
 	const handleOrderCreated = (item) => {
 		if (item) getOrdersForItem(item);
+		fetchConversations();
 	};
 
 	// Setup filtered orders to call when matching the item to the orders
@@ -106,7 +109,7 @@ function Home() {
 			{/* TABLE OF ITEMS */}
 			<table className="table table-bordered caption-top">
 				<caption>Inventory Items</caption>
-				<thead>
+				<thead className="">
 					<tr>
 						<th scope="col">Name</th>
 						<th scope="col">Quantity</th>
@@ -114,7 +117,9 @@ function Home() {
 						<th scope="col">Updated</th>
 						<th scope="col">Description</th>
 						<th scope="col">Added By</th>
-						<th scope="col">Actions</th>
+						<th scope="col" className="">
+							Actions
+						</th>
 					</tr>
 				</thead>
 				<tbody>

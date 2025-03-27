@@ -133,7 +133,7 @@ class Message(models.Model):
     
     # Order the messages by most recent
     class Meta:
-        ordering = ['-sent_at']
+        ordering = ['sent_at']
         
     def __str__(self):
         if not self.conversation.notification_only:
@@ -143,32 +143,36 @@ class Message(models.Model):
         
         
 # Utility Function to handle the creation of a system message to notify staff of significant events 
+# Modified to create one message to send to all staff members in one conversation - was sending one for each participant
 def notify_staff(text: str):
     User = get_user_model()
     
-    # Obtain our created system user
+    # Obtain the system user.
     system_user = User.objects.get(username="System")
     
-    # Assign staff variable to users where is_staff is True
+    # Get all staff users.
     staff = User.objects.filter(is_staff=True)
     
-    # One instance of a conversation to all staff
+    # Get or create a conversation for staff notifications.
     convo, created = Conversation.objects.get_or_create(
-        subject = "Staff Notifications",
-        notification_only = True
+        subject="Staff Notifications",
+        notification_only=True
     )
     
-    # Ensure participants are up to date
+    # Ensure the conversation participants are up to date.
     convo.participants.set(staff)
     
-    for staffer in staff:
-        if staffer != system_user:
-            msg = Message.objects.create(
-                conversation=convo,
-                sender=system_user,
-                text=text
-            )
-            msg.receivers.add(staffer)
+    # Create a single message.
+    msg = Message.objects.create(
+        conversation=convo,
+        sender=system_user,
+        text=text
+    )
+    
+    # Add all staff users (except the system user) as receivers.
+    receivers = staff.exclude(username="System")
+    msg.receivers.set(receivers)
+
     
     
     

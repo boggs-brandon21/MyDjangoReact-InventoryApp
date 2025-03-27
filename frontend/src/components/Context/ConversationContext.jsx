@@ -1,15 +1,26 @@
-import React from 'react';
-import { createContext, useState, useEffect, useCallback } from 'react';
+import React, {
+	createContext,
+	useState,
+	useEffect,
+	useCallback,
+	useContext,
+} from 'react';
 import api from '../../api';
+import { AuthContext } from './AuthContext';
 
 export const ConversationsContext = createContext();
 
 // Only need to pass children as a prop because we handle the user only views on backend
-export const ConversationsProvider = ({ children, user }) => {
+export const ConversationsProvider = ({ children }) => {
 	const [conversations, setConversations] = useState([]);
 	const [potentialTargets, setPotentialTargets] = useState([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState(null);
+	const [currentConversation, setCurrentConversation] = useState(null);
+	const [messages, setMessages] = useState([]);
+
+	// Get the currentUser from AuthContext
+	const { currentUser } = useContext(AuthContext);
 
 	// Function to fetch conversations where the current user is a participant
 	const fetchConversations = useCallback(async () => {
@@ -27,12 +38,7 @@ export const ConversationsProvider = ({ children, user }) => {
 		} finally {
 			setIsLoading(false);
 		}
-	}, [user]);
-
-	// Fetch the conversations when the component mounts or when the user changes
-	useEffect(() => {
-		fetchConversations();
-	}, [fetchConversations]);
+	}, []);
 
 	// Function to fetch all users and filter out current user or users who are already participants
 	const fetchUsers = useCallback(async () => {
@@ -41,7 +47,7 @@ export const ConversationsProvider = ({ children, user }) => {
 			// Filter users to include those who are not in convo with current user
 			const availableUsers = response.data.filter((u) => {
 				// Skip the current user
-				if (user?.username === u.username) return false;
+				if (currentUser?.username === u.username) return false;
 
 				// check if the user is already a participant in any convo
 				const alreadyInConvo = conversations.some((conversation) =>
@@ -56,19 +62,29 @@ export const ConversationsProvider = ({ children, user }) => {
 			console.error('Error fetching users: ', err);
 			setError(err);
 		}
-	}, [user, conversations]);
+	}, [currentUser, conversations]);
 
 	// Run fetchUsers when the conversation list or current user changes
 	useEffect(() => {
 		fetchUsers();
 	}, [fetchUsers]);
 
+	// Fetch the conversations when the component mounts or when the user changes
+	useEffect(() => {
+		if (currentUser) {
+			fetchConversations();
+		}
+	}, [currentUser, fetchConversations]);
+
 	// Function to create a new convo with one or more participants
 	// Accepts an array of participant IDs
-	const createConversation = useCallback(async (participantIds) => {
+	const createConversation = useCallback(async (participantIds, subject) => {
 		try {
 			// prepare payload to send to api
-			const payload = { participant_ids: participantIds };
+			const payload = {
+				participant_ids: participantIds,
+				subject: subject,
+			};
 
 			// Make api call to create the new convo
 			const response = await api.post('api/conversations/', payload);
@@ -83,6 +99,38 @@ export const ConversationsProvider = ({ children, user }) => {
 			setError(err);
 		}
 	}, []);
+
+	// Callback used to handle the update identifying the current conversation the user is in
+	const updateCurrentConversation = useCallback((conversation) => {
+		setCurrentConversation(conversation);
+	}, []);
+
+	// Function to obtain messages for a conversation
+	const fetchMessages = useCallback(async (conversation) => {
+		setIsLoading(true); // Set loading state to true before making the api call
+
+		try {
+			const response = await api.get(
+				`api/messages/?conversation=${conversation.id}`
+			);
+			// Update the state with the convos from the response
+			setMessages(response.data);
+			setError(null);
+		} catch (err) {
+			console.error('Error fetching messages: ', err);
+			// Update the error state if fetching fails
+			setError(err);
+		} finally {
+			setIsLoading(false);
+		}
+	}, []);
+
+	// Fetch the messages when the component mounts or when the user changes
+	useEffect(() => {
+		if (currentUser && currentConversation) {
+			fetchMessages(currentConversation);
+		}
+	}, [currentUser, currentConversation, fetchMessages]);
 
 	// Function to create a new message within a conversation
 	// conversationId: ID of the convo where the message should be added
@@ -99,6 +147,9 @@ export const ConversationsProvider = ({ children, user }) => {
 				return;
 			}
 
+			// Initialize a newMessage
+			const newMessage = response.data;
+
 			// Update the specific conversation by appending the new message to its messages array
 			setConversations((prevConvos) =>
 				prevConvos.map((convo) => {
@@ -114,6 +165,9 @@ export const ConversationsProvider = ({ children, user }) => {
 					return convo;
 				})
 			);
+
+			// Update the messages state for MessageBox to see if it fixes the full reload
+			setMessages((prevMessages) => [...prevMessages, newMessage]);
 		} catch (err) {
 			console.error('Error creating message: ', err);
 		}
@@ -158,6 +212,10 @@ export const ConversationsProvider = ({ children, user }) => {
 				createConversation, // Function to create a new conversation
 				createMessage, // Function to add a new message to a conversation
 				markMessagesAsRead, // Function to manage read notifications
+				updateCurrentConversation, // Callback used to update the current conversation for actions
+				currentConversation,
+				fetchMessages, // Function used to fetch the messages for the currentConversation
+				messages,
 			}}
 		>
 			{children}

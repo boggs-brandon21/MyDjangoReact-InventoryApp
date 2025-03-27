@@ -1,8 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from .models import InventoryItem, IncomingOrder, OutgoingOrder, Conversation, Message
-# from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-# from rest_framework_simplejwt.views import TokenObtainPairView
+
 
 
 # Django uses an ORM to map python objects to code needed to execute a db change
@@ -11,13 +10,9 @@ from .models import InventoryItem, IncomingOrder, OutgoingOrder, Conversation, M
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "password", "email"]
+        fields = ["id", "username", "password", "email", "first_name", "last_name"]
         extra_kwargs = {"password": {"write_only": True}}
         
-    # function to create a new user with validated data from fields    
-    # def create(self, validated_data):
-    #     user = User.objects.create_user(**validated_data)  # splitting up keyword arguments to pass data from a dictionary
-    #     return user
     
 class ItemSerializer(serializers.ModelSerializer):
     # Tells the DRF to return the string version of the related user
@@ -26,10 +21,6 @@ class ItemSerializer(serializers.ModelSerializer):
         model = InventoryItem
         fields = '__all__'
     
-    # Uneccessary as we aren't overiding the default method... will use to handle email notifications
-    # def create(self, validated_data):
-    #     item = InventoryItem.objects.create(**validated_data)
-    #     return item
         
         
 class IncomingOrderSerializer(serializers.ModelSerializer):
@@ -37,11 +28,6 @@ class IncomingOrderSerializer(serializers.ModelSerializer):
         model = IncomingOrder
         fields = '__all__'
         
-    # Uneccessary as we aren't overiding the default method... will use to handle email notifications
-    # def create(self, validated_data):
-    #     order = IncomingOrder.objects.create(**validated_data)
-    #     return order
-    
     # Dynamically display the InventoryItem name based on the FK of item in IncomingOrders
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -54,14 +40,11 @@ class OutgoingOrderSerializer(serializers.ModelSerializer):
         model = OutgoingOrder
         fields = '__all__'
         
-    # Uneccessary as we aren't overiding the default method... will use to handle email notifications
-    # def create(self, validated_data):
-    #     order = OutgoingOrder.objects.create(**validated_data)
-    #     return order
     
 
 class MessageSerializer(serializers.ModelSerializer):
     # Assign the sender as the user who created the message
+    sender = UserSerializer(read_only=True)
     class Meta:
         model = Message
         fields = [
@@ -97,9 +80,11 @@ class ConversationSerializer(serializers.ModelSerializer):
             'participant_ids',
             'created_at',
             'unread_count',
-            'messages',  # Provides a nested list of messages
+            'messages', # Provides a nested list of messages
+            'subject',
+            'notification_only'  
         ]
-        read_only_fields = ['id', 'created_at', 'messages', 'unread_count']
+        read_only_fields = ['id', 'created_at', 'messages', 'unread_count', 'notification_only']
         
     def create(self, validated_data):
         # Get the participant IDs from the validated data
